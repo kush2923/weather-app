@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: frontend-namespace  # Replace with your frontend namespace
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend-container
+        image: 158668600410.dkr.ecr.ap-southeast-1.amazonaws.com/mob-app:FE
+        ports:
+        - containerPort: 3000  # Frontend listens on port 3000
+        env:
+        - name: BACKEND_URL
+          value: http://backend-service.backend-namespace.svc.cluster.local:5000  # Connect to backend service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: frontend-namespace  # Replace with your frontend namespace
+  labels:
+    app: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+  - protocol: TCP
+    port: 80  # Expose frontend on port 80
+    targetPort: 3000  # Frontend listens on port 3000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: frontend-namespace  # Replace with your frontend namespace
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  rules:
+  - host: weather.com  # Changed the domain to weather.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
